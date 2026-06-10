@@ -21,7 +21,7 @@ const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || 'OlhaDrive'
-  const url = payload.data?.url || 'https://olhadrive.pro/cabinet'
+  const url = payload.data?.url || 'https://olhadrive.kiev.ua/cabinet'
   const options = {
     body: payload.notification?.body || '',
     icon: '/icon-192.png',
@@ -37,12 +37,12 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (e) => {
   e.notification.close()
   const data = e.notification.data || {}
-  const target = data.url || 'https://olhadrive.pro/cabinet'
-  const fullUrl = target.startsWith('http') ? target : ('https://olhadrive.pro' + target)
+  const target = data.url || 'https://olhadrive.kiev.ua/cabinet'
+  const fullUrl = target.startsWith('http') ? target : ('https://olhadrive.kiev.ua' + target)
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const c of list) {
-        if (c.url.startsWith('https://olhadrive.pro') && 'focus' in c) {
+        if (c.url.startsWith('https://olhadrive.kiev.ua') && 'focus' in c) {
           c.focus()
           return c.navigate(fullUrl)
         }

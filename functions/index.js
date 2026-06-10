@@ -18,7 +18,7 @@ async function sendPush(uid, title, body, urlPath) {
     console.warn(`sendPush: no token for uid=${uid}`);
     return;
   }
-  const link = (urlPath || "/").startsWith("http") ? (urlPath || "/") : `https://olhadrive.pro${urlPath || "/"}`;
+  const link = (urlPath || "/").startsWith("http") ? (urlPath || "/") : `https://olhadrive.kiev.ua${urlPath || "/"}`;
   try {
     await messaging.send({
       token,
@@ -246,7 +246,7 @@ exports.onQueueInvite = onValueUpdated(
     await db.ref(`timeslots/${date}/${slotId}/offeredTo/${uid}`).set({ until }).catch(() => {});
     await db.ref(`users/${uid}/queueOffers/${slotKey}`).set({ date, time, until, slotKey }).catch(() => {});
 
-    const url = `https://olhadrive.pro/cabinet?date=${date}&time=${encodeURIComponent(time)}`;
+    const url = `https://olhadrive.kiev.ua/cabinet?date=${date}&time=${encodeURIComponent(time)}`;
     await sendPush(uid,
       "🎉 Слот зарезервовано для вас!",
       `${date} о ${time} — у вас 30 хвилин щоб записатись`,
@@ -395,7 +395,7 @@ exports.unlockVipSlots = onSchedule(
         },
         webpush: {
           notification: { icon: "/favicon.svg" },
-          fcmOptions: { link: "https://olhadrive.pro/book" },
+          fcmOptions: { link: "https://olhadrive.kiev.ua/book" },
         },
       }).catch(() => {});
     }
