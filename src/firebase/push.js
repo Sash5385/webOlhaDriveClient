@@ -5,7 +5,7 @@ import { db } from './config'
 
 // ⚠️ ЗГЕНЕРУЙ VAPID KEY В Firebase Console:
 // Project Settings → Cloud Messaging → Web Push certificates → Generate key pair
-const VAPID_KEY = 'BFT1t7hXhEcSsHdotLlG5xoIFNrdS11vU_jsHiD1UUMsskVINBW2het8ogOKioGTPK8X_-u1ivEQM0n0Dh6Zvqk'
+const VAPID_KEY = 'BJzB84MYVCjYxFGRJa1t2hTyMjlyYhCfDBz_wgD8VCX84rUA1ircVYMkCEe8gYrKkceaM6Mweup8AW9DoFUyncY'
 
 let messaging = null
 
