@@ -16,7 +16,7 @@ export const isInAppBrowser = () => {
     (isIOSDevice() && !/Safari\//.test(ua) && !/CriOS/.test(ua) && !/FxiOS/.test(ua))
 }
 
-export function initRecaptcha(containerId = 'recaptcha-container', force = false, onSolved = null) {
+export function initRecaptcha(containerId = 'recaptcha-container', force = false, onSolved = null, onExpired = null) {
   if (recaptchaVerifier && !force) return recaptchaVerifier
   if (recaptchaVerifier) {
     try { recaptchaVerifier.clear() } catch {}
@@ -25,7 +25,10 @@ export function initRecaptcha(containerId = 'recaptcha-container', force = false
   recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
     size: isIOSDevice() ? 'normal' : 'invisible',
     callback: onSolved ?? (() => {}),
-    'expired-callback': () => { recaptchaVerifier = null },
+    'expired-callback': () => {
+      recaptchaVerifier = null
+      if (onExpired) onExpired()
+    },
   })
   return recaptchaVerifier
 }
@@ -48,8 +51,8 @@ export function getSmsErrorMessage(code) {
   }
 }
 
-export async function renderRecaptcha(containerId = 'recaptcha-container', onSolved = null) {
-  const verifier = initRecaptcha(containerId, false, onSolved)
+export async function renderRecaptcha(containerId = 'recaptcha-container', onSolved = null, onExpired = null) {
+  const verifier = initRecaptcha(containerId, false, onSolved, onExpired)
   try { await verifier.render() } catch {}
 }
 
