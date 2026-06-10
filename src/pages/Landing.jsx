@@ -59,16 +59,6 @@ export default function Landing({ user }) {
           <p>Онлайн-запис на уроки водіння в Києві.<br/>Автошкола та приватні уроки.</p>
           <button className="hero-cta" onClick={goAuth}>📅 Записатись на урок</button>
 
-          <div className="hero-stats">
-            <div className="stat-card">
-              <div className="stat-num">20+</div>
-              <div className="stat-lbl">років досвіду</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-num">2000+</div>
-              <div className="stat-lbl">учнів</div>
-            </div>
-          </div>
         </section>
 
         {/* SERVICES */}
