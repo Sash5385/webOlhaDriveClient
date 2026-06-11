@@ -1,6 +1,8 @@
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut as fbSignOut
 } from 'firebase/auth'
 import { auth } from './config'
@@ -75,6 +77,12 @@ export async function resetRecaptcha() {
     recaptchaVerifier = null
   }
   confirmationResult = null
+}
+
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider()
+  const result = await signInWithPopup(auth, provider)
+  return result.user
 }
 
 export async function signOut() {

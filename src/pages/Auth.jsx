@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { sendSmsCode, verifySmsCode, resetRecaptcha, getSmsErrorMessage, renderRecaptcha, isIOSDevice, isInAppBrowser } from '../firebase/auth'
+import { useNavigate } from 'react-router-dom'
+import { sendSmsCode, verifySmsCode, resetRecaptcha, getSmsErrorMessage, renderRecaptcha, isIOSDevice, isInAppBrowser, signInWithGoogle } from '../firebase/auth'
 import { signInWithEmail, signUpWithEmail, sendPasswordReset } from '../firebase/auth-email'
 import { saveUserProfile, getUserProfile } from '../firebase/db'
 import { useTheme } from '../hooks/useTheme'
@@ -73,6 +73,8 @@ export default function Auth({ user, profile, onProfileSaved }) {
   // iOS reCAPTCHA state
   const [captchaSolved, setCaptchaSolved] = useState(false)
   const [resendCaptchaNeeded, setResendCaptchaNeeded] = useState(false)
+
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   // auth mode toggle: 'sms' | 'email-login' | 'email-register'
   const [authMode, setAuthMode] = useState('sms')
@@ -254,6 +256,36 @@ export default function Auth({ user, profile, onProfileSaved }) {
     }
   }
 
+  // ─── GOOGLE ──────────────────────────────────────────
+  const handleGoogleSignIn = async () => {
+    setPhoneError('')
+    setGoogleLoading(true)
+    try {
+      const u = await signInWithGoogle()
+      const existing = await getUserProfile(u.uid)
+      if (existing) {
+        if (onProfileSaved) await onProfileSaved()
+        nav('/cabinet')
+      } else {
+        if (u.displayName) {
+          const parts = u.displayName.split(' ')
+          setName(parts[0] || '')
+          setSurname(parts.slice(1).join(' ') || '')
+        }
+        setStep('survey')
+      }
+    } catch (e) {
+      console.error(e)
+      if (e.code === 'auth/popup-blocked') {
+        setPhoneError('Браузер заблокував вікно. Дозволь popup або використай SMS/Email')
+      } else if (e.code !== 'auth/popup-closed-by-user') {
+        setPhoneError('Помилка входу через Google. Спробуй SMS або Email')
+      }
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
   // ─── EMAIL LOGIN ──────────────────────────────────────
   const handleEmailLogin = async () => {
     setPhoneError('')
@@ -316,14 +348,19 @@ export default function Auth({ user, profile, onProfileSaved }) {
 
       {/* TOP BAR */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0'}}>
-        {step === 'sms'
-          ? <button className="back-btn" onClick={()=>{setStep('phone');resetRecaptcha()}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-          : <Link to="/schedule" className="back-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </Link>
-        }
+        <div style={{display:'flex',gap:6}}>
+          {step === 'sms'
+            ? <button className="back-btn" onClick={()=>{setStep('phone');resetRecaptcha()}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+            : <button className="back-btn" onClick={() => nav(-1)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+          }
+          <button className="back-btn" onClick={() => nav(1)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
         <div className="step-indicator">
           {[0,1,2].map(i => (
             <div key={i} className={`step-dot ${i===stepNum?'active':i<stepNum?'done':''}`}/>
@@ -366,6 +403,32 @@ export default function Auth({ user, profile, onProfileSaved }) {
                 }}>{tab.label}</button>
               )
             })}
+          </div>
+
+          {/* Google */}
+          {!inAppBrowser && (
+            <button onClick={handleGoogleSignIn} disabled={googleLoading} style={{
+              display:'flex',alignItems:'center',justifyContent:'center',gap:10,
+              width:'100%',padding:'13px 0',borderRadius:14,marginBottom:16,
+              background:'var(--surface)',border:'1.5px solid var(--border)',
+              cursor:'pointer',fontWeight:700,fontSize:15,color:'var(--text)',
+              boxShadow:'var(--shadow)',transition:'opacity .15s',
+              opacity: googleLoading ? 0.7 : 1,
+            }}>
+              <svg width="20" height="20" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+              {googleLoading ? 'Входимо...' : 'Увійти через Google'}
+            </button>
+          )}
+
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+            <div style={{flex:1,height:1,background:'var(--border)'}}/>
+            <span style={{fontSize:12,color:'var(--dim)'}}>або</span>
+            <div style={{flex:1,height:1,background:'var(--border)'}}/>
           </div>
 
           {authMode === 'sms' ? (<>
