@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase/config'
 import { getUserProfile, createBooking, markSlotsUnavailable } from './firebase/db'
 import { requestNotificationPermission, onForegroundMessage, getFirebaseSwReg } from './firebase/push'
+import { useAppUpdate } from './hooks/useAppUpdate'
 
 import Auth from './pages/Auth'
 import Cabinet from './pages/Cabinet'
@@ -11,6 +12,7 @@ import Landing from './pages/Landing'
 import PublicSchedule from './pages/PublicSchedule'
 
 export default function App() {
+  const { needRefresh, updateServiceWorker } = useAppUpdate()
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -50,9 +52,7 @@ export default function App() {
             requireInteraction: true,
             data: { url },
           })
-        }).catch(() => {
-          new Notification(title, { body, icon: '/icon-192.png' })
-        })
+        }).catch(() => {})
       } else {
         new Notification(title, { body, icon: '/icon-192.png' })
       }
@@ -101,6 +101,7 @@ export default function App() {
   }
 
   return (
+    <>
     <Routes>
       {/* Лендінг — тільки для не авторизованих */}
       <Route path="/" element={
@@ -132,5 +133,11 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    {needRefresh && (
+      <div className="update-banner" onClick={updateServiceWorker}>
+        Доступне оновлення — натисніть щоб оновити
+      </div>
+    )}
+    </>
   )
 }
