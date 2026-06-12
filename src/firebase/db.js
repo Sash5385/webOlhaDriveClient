@@ -8,7 +8,7 @@ export async function getUserProfile(uid) {
   const snap = await get(ref(db, `users/${uid}`))
   if (!snap.exists()) return null
   const data = snap.val()
-  return { ...(data.profile || {}), isVip: data.isVip || false, discount: data.discount || 0 }
+  return { ...(data.profile || {}), isVip: data.isVip || false, discount: data.discount || 0, hoursOffset: data.hoursOffset || 0 }
 }
 
 export async function saveUserProfile(uid, profile) {
@@ -177,7 +177,7 @@ export function subscribeQueueForSlot(date, time, callback) {
 // в”Ђв”Ђв”Ђ HELPERS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export function getConfirmedSchoolHours(bookings) {
   return bookings
-    .filter(b => b.serviceType === 'school' && b.status !== 'cancelled' && new Date(b.date) < new Date())
+    .filter(b => b.serviceType === 'school' && (b.status === 'confirmed' || b.status === 'completed') && new Date(b.date) < new Date())
     .reduce((sum, b) => sum + (b.durationHours || 1), 0)
 }
 
