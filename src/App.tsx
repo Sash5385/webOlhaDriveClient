@@ -1,4 +1,4 @@
-﻿import { createContext, useContext } from 'react'
+﻿import { createContext, useContext, useEffect } from 'react'
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from './firebase'
@@ -10,6 +10,7 @@ import BookingPage from './pages/BookingPage'
 import MyBookingsPage from './pages/MyBookingsPage'
 import Step1Service from './pages/Step1Service'
 import { useFCM } from './hooks/useFCM'
+import { initAutoUpdate } from './utils/autoUpdate'
 
 export const ProfileContext = createContext<{
   serviceType: 'school' | 'private' | null
@@ -25,6 +26,10 @@ function FCMInit() { useFCM(); return null }
 export default function App() {
   const { user, loading: authLoading } = useAuth()
   const { profile, loading: profileLoading, saveServiceType, saveQuestionnaire } = useProfile(user)
+
+  useEffect(() => {
+    initAutoUpdate()
+  }, [])
 
   if (authLoading || (user && profileLoading)) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
