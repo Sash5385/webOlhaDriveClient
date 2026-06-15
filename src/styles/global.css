@@ -180,4 +180,5 @@ button { font-family: inherit; touch-action: manipulation; }
   z-index: 9999;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
+  touch-action: manipulation;
 }

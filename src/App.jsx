@@ -132,7 +132,7 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     {needRefresh && (
-      <div className="update-banner" onClick={updateServiceWorker}>
+      <div className="update-banner" onPointerDown={updateServiceWorker}>
         Доступне оновлення — натисніть щоб оновити
       </div>
     )}
