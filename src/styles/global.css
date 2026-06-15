@@ -10,8 +10,7 @@ html, body {
   color: var(--text);
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   transition: background .3s, color .3s;
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: hidden;
   height: 100%;
   height: 100dvh;
 }
@@ -24,6 +23,7 @@ html, body {
   isolation: isolate;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 #root::before {
