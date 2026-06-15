@@ -24,6 +24,7 @@ html, body {
   isolation: isolate;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 #root::before {
