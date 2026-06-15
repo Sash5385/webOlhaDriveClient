@@ -53,8 +53,6 @@ export default function App() {
             data: { url },
           })
         }).catch(() => {})
-      } else {
-        new Notification(title, { body, icon: '/icon-192.png' })
       }
     })
   }, [user])
