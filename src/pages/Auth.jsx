@@ -107,9 +107,15 @@ export default function Auth({ user, profile, onProfileSaved }) {
       const onSolved = iosDevice ? () => setCaptchaSolved(true) : null
       const onExpired = iosDevice ? () => {
         setCaptchaSolved(false)
-        setTimeout(() => renderRecaptcha('recaptcha-container', onSolved, onExpired).catch(() => {}), 100)
+        setTimeout(() => renderRecaptcha('recaptcha-container', onSolved, onExpired).catch(e => {
+          console.error('[reCAPTCHA expire re-init]', e)
+          if (iosDevice) setPhoneError(getSmsErrorMessage(e.code))
+        }), 100)
       } : null
-      renderRecaptcha('recaptcha-container', onSolved, onExpired).catch(() => {})
+      renderRecaptcha('recaptcha-container', onSolved, onExpired).catch(e => {
+        console.error('[reCAPTCHA init]', e)
+        if (iosDevice) setPhoneError(getSmsErrorMessage(e.code))
+      })
     }
   }, [step, authMode])
 
@@ -123,6 +129,28 @@ export default function Auth({ user, profile, onProfileSaved }) {
   useEffect(() => {
     if (step === 'sms' && codeInputRef.current) codeInputRef.current.focus()
   }, [step])
+
+  useEffect(() => {
+    if (!resendCaptchaNeeded || !iosDevice) return
+    const captchaPhone = phone
+    renderRecaptcha('recaptcha-resend-container', async () => {
+      setSending(true)
+      try {
+        await sendSmsCode(captchaPhone, 'recaptcha-resend-container')
+        setResendTimer(45)
+        setCode('')
+      } catch (e) {
+        setCodeError(getSmsErrorMessage(e.code))
+      } finally {
+        setResendCaptchaNeeded(false)
+        setSending(false)
+      }
+    }).catch(e => {
+      console.error('[reCAPTCHA resend]', e)
+      setCodeError(getSmsErrorMessage(e.code))
+      setResendCaptchaNeeded(false)
+    })
+  }, [resendCaptchaNeeded])
 
   // ─── PHONE ───────────────────────────────────────────
   const handleSendCode = async () => {
@@ -142,6 +170,8 @@ export default function Auth({ user, profile, onProfileSaved }) {
       console.error(e)
       setPhoneError(getSmsErrorMessage(e.code))
       await resetRecaptcha()
+      const onSolved = iosDevice ? () => setCaptchaSolved(true) : null
+      renderRecaptcha('recaptcha-container', onSolved, null).catch(() => {})
     } finally {
       setSending(false)
     }
@@ -178,22 +208,6 @@ export default function Auth({ user, profile, onProfileSaved }) {
 
     if (iosDevice) {
       setResendCaptchaNeeded(true)
-      // wait for div to mount, then render captcha with auto-send callback
-      setTimeout(() => {
-        renderRecaptcha('recaptcha-resend-container', async () => {
-          setSending(true)
-          try {
-            await sendSmsCode(phone, 'recaptcha-resend-container')
-            setResendTimer(45)
-            setCode('')
-          } catch (e) {
-            setCodeError(getSmsErrorMessage(e.code))
-          } finally {
-            setResendCaptchaNeeded(false)
-            setSending(false)
-          }
-        }).catch(() => {})
-      }, 150)
       return
     }
 

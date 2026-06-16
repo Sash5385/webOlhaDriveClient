@@ -4,13 +4,13 @@ import { useTheme } from '../hooks/useTheme'
 import './Landing.css'
 
 
-export default function Landing({ user }) {
+export default function Landing({ user, profile }) {
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
   const [termsOpen, setTermsOpen] = useState(false)
 
-  const goAuth = () => nav(user ? '/cabinet' : '/schedule')
-  const goRegister = () => nav(user ? '/cabinet' : '/auth')
+  const goAuth = () => nav(user && profile ? '/cabinet' : '/schedule')
+  const goRegister = () => nav(user && profile ? '/cabinet' : '/auth')
 
   return (
     <div className="landing-page">

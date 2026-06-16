@@ -107,7 +107,7 @@ export default function App() {
       <Route path="/" element={
         user && profile
           ? <Navigate to="/cabinet" replace />
-          : <Landing user={user} />
+          : <Landing user={user} profile={profile} />
       } />
 
       {/* Публічний розклад — перед авторизацією */}
