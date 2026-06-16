@@ -134,8 +134,11 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     {needRefresh && (
-      <div className="update-banner" onClick={updateServiceWorker}>
-        Доступне оновлення — натисніть щоб оновити
+      <div className={`update-banner${isUpdating ? ' update-banner--loading' : ''}`} onClick={updateServiceWorker}>
+        {isUpdating
+          ? <><span className="update-spinner" /> Оновлення...</>
+          : 'Доступне оновлення — натисніть щоб оновити'
+        }
       </div>
     )}
     </>
