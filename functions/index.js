@@ -11,7 +11,16 @@ const REGION    = "europe-west1";
 const INSTANCE  = "olhadrive-booking-default-rtdb";
 
 // ─── HELPER: send FCM to a user token ────────────────────────────
-async function sendPush(uid, title, body, urlPath) {
+async function sendPush(uid, title, body, urlPath, type = 'system') {
+  await db.ref(`notifications/${uid}`).push({
+    type,
+    title,
+    body,
+    url: urlPath || '/cabinet',
+    ts: Date.now(),
+    read: false,
+  }).catch(e => console.error(`notifications write error uid=${uid}`, e.message));
+
   const snap = await db.ref(`users/${uid}/fcmTokens/web/token`).get();
   const token = snap.val();
   if (!token) {
@@ -117,13 +126,13 @@ exports.onBookingStatusChanged = onValueWritten(
     const slot = date && time ? ` ${date} о ${time}` : "";
 
     if (newStatus === "confirmed") {
-      await sendPush(uid, "✅ Запис підтверджено", `Ваш урок${slot} підтверджено інструктором`, "/cabinet/bookings");
+      await sendPush(uid, "✅ Запис підтверджено", `Ваш урок${slot} підтверджено інструктором`, "/cabinet/bookings", "booking_confirmed");
     } else if (newStatus === "cancelled") {
       if (after.cancelledBy === "reschedule") {
         const name = after.studentName || "Учень";
         await sendAdminPush("🔄 Учень переніс запис", `${name}${slot}`);
       } else {
-        await sendPush(uid, "❌ Запис скасовано", `Урок${slot} скасовано. Заплануйте новий.`, "/cabinet");
+        await sendPush(uid, "❌ Запис скасовано", `Урок${slot} скасовано. Заплануйте новий.`, "/cabinet", "booking_cancelled");
         if (after.cancelledBy === "student") {
           const name = after.studentName || "Учень";
           await sendAdminPush("❌ Учень скасував запис", `${name}${slot}`);
@@ -180,7 +189,8 @@ exports.lessonReminder = onSchedule(
               uid,
               "🚗 Нагадування про урок",
               `Завтра урок о ${b.time || ""}. До зустрічі!`,
-              "/cabinet/bookings"
+              "/cabinet/bookings",
+              "system"
             )
           );
         }
@@ -206,7 +216,7 @@ exports.onInstructorMessage = onValueCreated(
     if (!message || message.from !== "admin") return;
 
     await db.ref(`chatMeta/${uid}/unreadForStudent`).transaction((cur) => (cur || 0) + 1);
-    await sendPush(uid, "💬 OlhaDrive — Інструктор", message.text, "/cabinet/chat");
+    await sendPush(uid, "💬 OlhaDrive — Інструктор", message.text, "/cabinet/chat", "system");
   }
 );
 
@@ -250,7 +260,8 @@ exports.onQueueInvite = onValueUpdated(
     await sendPush(uid,
       "🎉 Слот зарезервовано для вас!",
       `${date} о ${time} — у вас 30 хвилин щоб записатись`,
-      url
+      url,
+      "queue_offer"
     );
   }
 );
