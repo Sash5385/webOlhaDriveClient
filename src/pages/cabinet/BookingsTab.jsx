@@ -1,13 +1,25 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { cancelBooking, createBooking, markSlotsUnavailable, subscribeSlotsForDate, getAdminSettings, subscribeMonthAvailability } from '../../firebase/db'
+import { cancelBooking, createBooking, markSlotsUnavailable, claimSlot, subscribeSlotsForDate, getAdminSettings, subscribeMonthAvailability } from '../../firebase/db'
 import { parseYMD, getMonthShort, getMonthGrid, getMonthName, formatDateYMD, isPast, isSameDay, formatDateLabel } from '../../utils/date'
 import { googleCalendarLink, downloadICS } from '../../utils/calendar'
 import './BookingsTab.css'
 import './BookTab.css'
 
+// Мінімальний час до уроку, коли учень ще може самостійно скасувати (год)
+const CANCEL_WINDOW_HOURS = 24
+
+function hoursUntilLesson(booking) {
+  if (!booking?.date || !booking?.time) return Infinity
+  const [h, m] = booking.time.split(':').map(Number)
+  const d = parseYMD(booking.date)
+  d.setHours(h, m || 0, 0, 0)
+  return (d.getTime() - Date.now()) / 3600000
+}
+
 // ─── RESCHEDULE MODAL ────────────────────────────────────────────
-function RescheduleModal({ booking, user, onClose, onDone }) {
+function RescheduleModal({ booking, user, profile, onClose, onDone }) {
+  const isVipStudent = profile?.isVip === true
   const [today] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d })
   const [viewMonth, setViewMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
   const [selectedDate, setSelectedDate] = useState(null)
@@ -62,6 +74,7 @@ function RescheduleModal({ booking, user, onClose, onDone }) {
 
   const slotsList = useMemo(() => Object.values(slots)
     .filter(s => (s.time || '').endsWith(':00'))
+    .filter(s => !s.vipOnly || isVipStudent)
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
     .map(s => ({
       ...s,
@@ -70,7 +83,7 @@ function RescheduleModal({ booking, user, onClose, onDone }) {
     }))
     .filter(s => !s.lunchBlocked)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  , [slots, adminSettings, durationHours])
+  , [slots, adminSettings, durationHours, isVipStudent])
 
   const days = useMemo(() => getMonthGrid(viewMonth.getFullYear(), viewMonth.getMonth()), [viewMonth])
 
@@ -79,23 +92,57 @@ function RescheduleModal({ booking, user, onClose, onDone }) {
     setSaving(true)
     try {
       const newDate = formatDateYMD(selectedDate)
-      // 1. Скасовуємо старий запис (відновлює слоти)
+
+      // Перерахунок надбавки за новими слотами + заборона VIP-годин для не-VIP
+      const [nh, nm] = selectedTime.split(':').map(Number)
+      const newStartMin = nh * 60 + (nm || 0)
+      let newSurcharge = 0
+      for (let i = 0; i < durationHours; i++) {
+        const slotMin = newStartMin + i * 60
+        const key = `slot${String(Math.floor(slotMin / 60)).padStart(2, '0')}${String(slotMin % 60).padStart(2, '0')}`
+        newSurcharge += slots[key]?.surcharge || 0
+        if (i > 0 && !isVipStudent && slots[key]?.vipOnly) {
+          alert('Неможливо перенести: наступна година є VIP-слотом')
+          setSaving(false)
+          return
+        }
+      }
+      // Ціна = стара ціна + різниця надбавки (з урахуванням знижки, застосованої до запису)
+      const discountFactor = 1 - (booking.discountPct || 0) / 100
+      const oldSurcharge = booking.surcharge || 0
+      let newPrice = booking.price
+      if (booking.price != null) {
+        newPrice = booking.price + Math.round((newSurcharge - oldSurcharge) * discountFactor)
+      } else if (newSurcharge > 0) {
+        newPrice = Math.round(newSurcharge * discountFactor)
+      }
+
+      // 1. Атомарно займаємо новий слот ДО скасування старого
+      const claimed = await claimSlot(newDate, selectedTime)
+      if (!claimed) {
+        alert('Цей слот щойно зайняли. Оберіть інший час.')
+        setSaving(false)
+        return
+      }
+      // 2. Скасовуємо старий запис (відновлює старі слоти)
       await cancelBooking(user.uid, booking.id, { isReschedule: true })
-      // 2. Створюємо новий
+      // 3. Створюємо новий
       await createBooking(user.uid, {
         date: newDate,
         time: selectedTime,
         serviceType: booking.serviceType,
         serviceId: booking.serviceId,
         serviceName: booking.serviceName,
-        price: booking.price,
+        price: newPrice,
+        surcharge: newSurcharge || undefined,
+        discountPct: booking.discountPct || undefined,
         durationHours,
         studentName: booking.studentName,
         phone: booking.phone,
         tscCenter: booking.tscCenter,
         rescheduledFrom: `${booking.date} ${booking.time}`,
       })
-      // 3. Закриваємо слоти
+      // 4. Закриваємо слоти (фантомні 30-хв + повна тривалість)
       await markSlotsUnavailable(newDate, selectedTime, durationHours, adminSettings.interval || 30)
       onDone()
     } catch (e) {
@@ -207,6 +254,10 @@ export default function BookingsTab({ user, profile, bookingsData }) {
   }
 
   const handleCancel = async (booking) => {
+    if (hoursUntilLesson(booking) < CANCEL_WINDOW_HOURS) {
+      alert(`Скасувати урок можна не пізніше ніж за ${CANCEL_WINDOW_HOURS} год до початку. Зверніться до інструктора.`)
+      return
+    }
     if (!confirm(`Скасувати урок ${booking.date} о ${booking.time}?`)) return
     try {
       await cancelBooking(user.uid, booking.id)
@@ -225,6 +276,7 @@ export default function BookingsTab({ user, profile, bookingsData }) {
           return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`
         })()
       : null
+    const cancelLocked = hoursUntilLesson(b) < CANCEL_WINDOW_HOURS
     const statusClass = b.status === 'confirmed' ? 'status-confirmed'
       : b.status === 'cancelled' ? 'status-cancelled' : 'status-pending'
     const statusText = b.status === 'confirmed' ? (isPast ? 'Завершено' : 'Підтверджено')
@@ -250,6 +302,11 @@ export default function BookingsTab({ user, profile, bookingsData }) {
           </div>
           <div className="booking-meta">📍 Верховинна, 44</div>
           <div className={`booking-status ${statusClass}`}>{statusText}</div>
+          {!isPast && b.status !== 'cancelled' && cancelLocked && (
+            <div className="booking-meta" style={{ color: 'var(--dim)', marginTop: 4 }}>
+              ⏳ Скасування — не пізніше ніж за {CANCEL_WINDOW_HOURS} год
+            </div>
+          )}
           {!isPast && b.status !== 'cancelled' && (
             <div className="booking-cal-row">
               <a href={googleCalendarLink(b)} target="_blank" rel="noopener noreferrer" className="cal-add-btn">
@@ -264,7 +321,13 @@ export default function BookingsTab({ user, profile, bookingsData }) {
         {!isPast && b.status !== 'cancelled' && (
           <div className="booking-actions">
             <button className="action-btn" title="Перенести" onClick={() => setRescheduleBooking(b)}>📅</button>
-            <button className="action-btn" title="Скасувати" onClick={() => handleCancel(b)}>✕</button>
+            <button
+              className="action-btn"
+              title={cancelLocked ? `Скасування доступне не пізніше ніж за ${CANCEL_WINDOW_HOURS} год` : 'Скасувати'}
+              onClick={() => handleCancel(b)}
+              disabled={cancelLocked}
+              style={cancelLocked ? { opacity: 0.4 } : {}}
+            >✕</button>
           </div>
         )}
       </div>
@@ -304,6 +367,7 @@ export default function BookingsTab({ user, profile, bookingsData }) {
         <RescheduleModal
           booking={rescheduleBooking}
           user={user}
+          profile={profile}
           onClose={() => setRescheduleBooking(null)}
           onDone={() => { setRescheduleBooking(null); showToast('Урок перенесено') }}
         />
