@@ -1,5 +1,10 @@
 # CLAUDE.md — Production Rules для OlhaDrive
 
+## Домени проекту
+
+- **admin.olhadrive.kiev.ua** — адмін-панель (`webolhadrive`)
+- **olhadrive.kiev.ua** — клієнтський застосунок (`webolhadriveclient`)
+
 ## О проекте
 
 OlhaDrive — SaaS-платформа онлайн-записи для инструкторов вождения с перспективой развития в универсальный маркетплейс услуг.
