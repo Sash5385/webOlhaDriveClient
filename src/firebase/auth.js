@@ -59,14 +59,24 @@ export function getSmsErrorMessage(code, message) {
 
 export async function renderRecaptcha(containerId = 'recaptcha-container', onSolved = null, onExpired = null) {
   const verifier = initRecaptcha(containerId, false, onSolved, onExpired)
-  try { await verifier.render() } catch (e) { console.error('[reCAPTCHA render]', e.code, e.message) }
+  try { await verifier.render() } catch (e) {
+    console.error('[reCAPTCHA render]', e.code, e.message)
+    try { verifier.clear() } catch {}
+    recaptchaVerifier = null
+  }
 }
 
 // containerId used for resend (different container on SMS step)
 export async function sendSmsCode(phoneNumber, containerId = 'recaptcha-container') {
   const verifier = initRecaptcha(containerId)
-  confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
-  return confirmationResult
+  try {
+    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
+    return confirmationResult
+  } catch (e) {
+    try { recaptchaVerifier?.clear() } catch {}
+    recaptchaVerifier = null
+    throw e
+  }
 }
 
 export async function verifySmsCode(code) {
