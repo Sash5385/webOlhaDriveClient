@@ -369,7 +369,7 @@ export default function Auth({ user, profile, onProfileSaved }) {
                 <label className="form-label">Твоє імʼя</label>
                 <input
                   type="text"
-                  placeholder="Олександр"
+                  placeholder="Ольга"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   className="form-input"

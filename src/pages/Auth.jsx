@@ -628,7 +628,7 @@ export default function Auth({ user, profile, onProfileSaved }) {
 
           <div className="field">
             <div className="field-label">Імʼя *</div>
-            <input className="text-input" type="text" placeholder="Олександр" value={name} onChange={e=>setName(e.target.value)} autoFocus/>
+            <input className="text-input" type="text" placeholder="Ольга" value={name} onChange={e=>setName(e.target.value)} autoFocus/>
           </div>
 
           <div className="field">
