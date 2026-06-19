@@ -31,9 +31,9 @@ html, body {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: url('/id4-hero.jpg');
+  background-image: url('/olhadrive.png');
   background-size: cover;
-  background-position: calc(50% - 173px) top;
+  background-position: center top;
   background-repeat: no-repeat;
 }
 
