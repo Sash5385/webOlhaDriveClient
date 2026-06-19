@@ -10,19 +10,18 @@ html, body {
   color: var(--text);
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   transition: background .3s, color .3s;
-  overflow: hidden;
-  height: 100%;
   height: 100dvh;
+  overflow: hidden;
 }
 
 #root {
-  height: 100%;
   height: 100dvh;
   background: transparent;
   color: var(--text);
   isolation: isolate;
   display: flex;
   flex-direction: column;
+  position: relative;
   overflow: hidden;
 }
 
@@ -31,9 +30,10 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: url('/olhadrive.png');
+  pointer-events: none;
+  background-image: url('/id4-hero.jpg');
   background-size: cover;
-  background-position: center top;
+  background-position: calc(50% - 173px) top;
   background-repeat: no-repeat;
 }
 
@@ -42,6 +42,7 @@ html, body {
   position: fixed;
   inset: 0;
   z-index: -1;
+  pointer-events: none;
   background: linear-gradient(to bottom,
     rgba(28,29,33,0.45) 0%,
     rgba(28,29,33,0.72) 55%,
@@ -49,12 +50,12 @@ html, body {
   );
 }
 
+[data-theme="light"] #root::before {
+  opacity: 0;
+}
+
 [data-theme="light"] #root::after {
-  background: linear-gradient(to bottom,
-    rgba(240,241,245,0.5) 0%,
-    rgba(240,241,245,0.82) 55%,
-    rgba(240,241,245,0.95) 100%
-  );
+  background: var(--bg);
 }
 
 @media (min-width: 600px) {
