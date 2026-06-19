@@ -1,5 +1,6 @@
 :root {
   /* DARK (default) */
+  color-scheme: dark;
   --bg: #1c1d21;
   --bg-deep: #161719;
   --surface: #26282c;
@@ -19,6 +20,7 @@
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --bg: #f0f1f5;
   --bg-deep: #e4e6ec;
   --surface: #ffffff;
