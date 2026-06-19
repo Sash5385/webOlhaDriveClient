@@ -89,6 +89,13 @@
   color: #ef4444;
 }
 
+.booking-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .booking-cal-row {
   display: flex;
   gap: 5px;
@@ -120,13 +127,6 @@
   color: var(--dim);
 }
 
-.booking-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
 .action-btn {
   width: 32px;
   height: 32px;
@@ -137,6 +137,22 @@
   box-shadow: var(--shadow-in);
   color: var(--text);
   font-size: 14px;
+}
+
+/* ─── LIGHT THEME ──────────────────────────────────────────────── */
+[data-theme="light"] .booking-card {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="light"] .booking-date {
+  background: var(--surf-lo);
+  border-color: var(--border);
+}
+
+[data-theme="light"] .action-btn {
+  background: var(--surf-lo);
 }
 
 .empty-state {
