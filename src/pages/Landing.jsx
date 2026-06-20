@@ -184,6 +184,24 @@ export default function Landing({ user, profile }) {
         </section>
 
 
+        {/* INSTRUCTOR */}
+        <section className="lsection">
+          <div className="lsection-title">Інструктор</div>
+          <h2>Ольга</h2>
+          <div className="instructor-card">
+            <img src="/instructor.png" className="instructor-avatar" alt="Ольга" />
+            <div className="instructor-info">
+              <div className="instructor-name">Ольга</div>
+              <div className="instructor-role">Інструктор з водіння</div>
+              <div className="instructor-meta">
+                <span>📍 Київ, Верховинна 44</span>
+                <span>🚗 Стаж 8 років</span>
+                <span>✅ Сертифікована</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CONTACTS */}
         <section className="lsection">
           <div className="lsection-title">Контакти</div>
