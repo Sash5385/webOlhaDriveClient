@@ -258,7 +258,7 @@ export default function ProfileTab({ user, profile, onProfileUpdate }) {
       </div>
 
       <a
-        href="https://lark.id4drive.pro"
+        href="https://zhaivoronok.com.ua"
         target="_blank"
         rel="noopener noreferrer"
         className="school-btn"
