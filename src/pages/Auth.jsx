@@ -4,6 +4,7 @@ import { sendSmsCode, verifySmsCode, resetRecaptcha, getSmsErrorMessage, renderR
 import { signInWithEmail, signUpWithEmail, sendPasswordReset } from '../firebase/auth-email'
 import { saveUserProfile, getUserProfile } from '../firebase/db'
 import { useTheme } from '../hooks/useTheme'
+import { useToast } from '../hooks/useToast'
 import { normalizePhone, formatPhone } from '../utils/format'
 import './Auth.css'
 
@@ -48,6 +49,7 @@ const TERMS_TEXT = `Умови відвідування уроків водін�
 
 export default function Auth({ user, profile, onProfileSaved }) {
   const { theme, toggle } = useTheme()
+  const { showToast, ToastEl } = useToast()
   const nav = useNavigate()
 
   // step: 'phone' | 'sms' | 'survey'
@@ -227,10 +229,10 @@ export default function Auth({ user, profile, onProfileSaved }) {
 
   // ─── SURVEY ──────────────────────────────────────────
   const handleSubmitSurvey = async () => {
-    if (!name.trim()) { alert('Введи імʼя'); return }
-    if (!surname.trim()) { alert('Введи прізвище'); return }
-    if (!user?.phoneNumber && !surveyPhone.trim()) { alert('Введи номер телефону'); return }
-    if (!termsAgreed) { alert('Прийми умови користування'); return }
+    if (!name.trim()) { showToast('Введи імʼя'); return }
+    if (!surname.trim()) { showToast('Введи прізвище'); return }
+    if (!user?.phoneNumber && !surveyPhone.trim()) { showToast('Введи номер телефону'); return }
+    if (!termsAgreed) { showToast('Прийми умови користування'); return }
 
     setSavingProfile(true)
     try {
@@ -255,7 +257,7 @@ export default function Auth({ user, profile, onProfileSaved }) {
       nav(r)
     } catch (e) {
       console.error(e)
-      alert('Не вдалось зберегти профіль')
+      showToast('Не вдалось зберегти профіль')
     } finally {
       setSavingProfile(false)
     }
@@ -750,6 +752,7 @@ export default function Auth({ user, profile, onProfileSaved }) {
           </div>
         </div>
       )}
+      {ToastEl}
     </div>
   )
 }
