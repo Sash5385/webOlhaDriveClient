@@ -5,6 +5,7 @@ import { auth } from './firebase/config'
 import { getUserProfile, createBooking, markSlotsUnavailable, claimSlot } from './firebase/db'
 import { requestNotificationPermission, onForegroundMessage, getFirebaseSwReg } from './firebase/push'
 import { useAppUpdate } from './hooks/useAppUpdate'
+import { useToast } from './hooks/useToast'
 
 import Auth from './pages/Auth'
 import Cabinet from './pages/Cabinet'
@@ -19,6 +20,7 @@ function SaveRedirect({ to }) {
 
 export default function App() {
   const { needRefresh, updateServiceWorker, isUpdating } = useAppUpdate()
+  const { showToast, ToastEl } = useToast()
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -75,7 +77,7 @@ export default function App() {
         // Атомарно займаємо слот — міг бути зайнятий поки користувач авторизувався
         const claimed = await claimSlot(pb.date, pb.time)
         if (!claimed) {
-          alert('На жаль, цей слот вже зайняли поки ви авторизувались. Оберіть інший час.')
+          showToast('На жаль, цей слот вже зайняли поки ви авторизувались. Оберіть інший час.')
         } else {
           await createBooking(auth.currentUser.uid, {
             date: pb.date,
@@ -156,6 +158,7 @@ export default function App() {
         }
       </div>
     )}
+    {ToastEl}
     </>
   )
 }
