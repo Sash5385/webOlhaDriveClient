@@ -3,6 +3,7 @@ import {
   subscribeStudentChat, sendStudentMessage, markDirectChatRead, clearStudentChat,
   subscribeGeneralChat, sendGeneralMessage,
 } from '../../firebase/db'
+import { useToast } from '../../hooks/useToast'
 import './ChatTab.css'
 
 // ─── DIRECT CHAT (with instructor) ───────────────────────────────
@@ -11,6 +12,7 @@ function DirectChat({ user, profile }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef(null)
+  const { showToast, ToastEl } = useToast()
   const taRef = useRef(null)
 
   useEffect(() => {
@@ -31,7 +33,7 @@ function DirectChat({ user, profile }) {
       setText('')
       taRef.current?.focus()
     } catch {
-      alert('Помилка надсилання')
+      showToast('Помилка надсилання')
     } finally {
       setSending(false)
     }
@@ -50,6 +52,7 @@ function DirectChat({ user, profile }) {
 
   return (
     <div className="chat-inner fade-up">
+      {ToastEl}
       <div className="chat-header">
         <div className="chat-instructor-avatar">🚗</div>
         <div className="chat-instructor-info">
@@ -127,6 +130,7 @@ function GeneralChat({ user, profile }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef(null)
+  const { showToast, ToastEl } = useToast()
   const taRef = useRef(null)
 
   useEffect(() => {
@@ -146,7 +150,7 @@ function GeneralChat({ user, profile }) {
       setText('')
       taRef.current?.focus()
     } catch {
-      alert('Помилка надсилання')
+      showToast('Помилка надсилання')
     } finally {
       setSending(false)
     }
@@ -161,6 +165,7 @@ function GeneralChat({ user, profile }) {
 
   return (
     <div className="chat-inner fade-up">
+      {ToastEl}
       <div className="chat-header">
         <div className="chat-general-avatar">👥</div>
         <div className="chat-instructor-info">
