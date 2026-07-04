@@ -30,7 +30,23 @@ jobs:
           channelId: live
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
 
-  # Джоб deploy-functions прибрано: Cloud Build API у проєкті не увімкнено, тож functions
-  # ніколи не деплоїлись, а падіння джоба робило весь ран червоним (виглядало як «деплой не
-  # прийшов», хоча хостинг деплоївся). Якщо знадобляться cloud functions — спершу увімкнути
-  # Cloud Build API у GCP-консолі проєкту, потім повернути цей джоб.
+  deploy-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Write service account key
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa-key.json"
+
+      - name: Deploy functions to Firebase
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa-key.json
+        run: npx firebase-tools deploy --only functions --project ${{ secrets.FIREBASE_PROJECT_ID }} --non-interactive --force
