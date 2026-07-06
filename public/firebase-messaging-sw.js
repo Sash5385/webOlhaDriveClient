@@ -20,10 +20,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'OlhaDrive'
+  // Data-only push (без top-level/webpush "notification") — інакше браузер
+  // додатково показав би те саме сповіщення сам, і виходив дубль.
+  const title = payload.data?.title || 'OlhaDrive'
   const url = payload.data?.url || 'https://olhadrive.kiev.ua/cabinet'
   const options = {
-    body: payload.notification?.body || '',
+    body: payload.data?.body || '',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     tag: 'olhadrive-' + (payload.data?.tag || Date.now()),
