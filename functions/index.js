@@ -203,6 +203,7 @@ exports.processPushTasks = onValueCreated(
 );
 
 // ─── 0. onNewBooking ─────────────────────────────────────────────
+// force redeploy: перевірка, чи тригер живий після кількох поспіль деплоїв
 exports.onNewBooking = onValueCreated(
   {
     ref: "bookings/{uid}/{bookingId}",
