@@ -260,15 +260,6 @@ export default function ProfileTab({ user, profile, onProfileUpdate }) {
         {APP_VERSION}
       </div>
 
-      <a
-        href="https://zhaivoronok.com.ua"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="school-btn"
-      >
-        АВТОШКОЛА
-      </a>
-
       {!logoutPending ? (
         <button className="logout-btn" onClick={() => setLogoutPending(true)}>
           Вийти з акаунту
