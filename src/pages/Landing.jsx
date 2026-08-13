@@ -9,7 +9,7 @@ export default function Landing({ user, profile }) {
   const nav = useNavigate()
   const [termsOpen, setTermsOpen] = useState(false)
 
-  const goAuth = () => nav(user && profile ? '/cabinet' : '/schedule')
+  const goAuth = () => nav(user && profile ? '/cabinet' : '/auth')
   const goRegister = () => nav(user && profile ? '/cabinet' : '/auth')
 
   return (
