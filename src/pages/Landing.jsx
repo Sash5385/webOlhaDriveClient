@@ -35,6 +35,37 @@ export default function Landing({ user, profile }) {
   const [termsOpen, setTermsOpen] = useState(false)
   const [services, setServices] = useState([])
   const [upcomingSlots, setUpcomingSlots] = useState([])
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [installed, setInstalled] = useState(false)
+
+  // Кнопка "Встановити додаток" — з'являється лише коли браузер реально
+  // може встановити PWA (Android/десктоп Chrome тощо); на iOS Safari
+  // beforeinstallprompt не спрацьовує, тому там кнопки не буде.
+  useEffect(() => {
+    setInstalled(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)
+
+    const handleBeforeInstall = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+    const handleInstalled = () => {
+      setInstallPrompt(null)
+      setInstalled(true)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    await installPrompt.userChoice
+    setInstallPrompt(null)
+  }
 
   useEffect(() => {
     getAdminServices().then(setServices).catch(() => {})
@@ -414,6 +445,9 @@ export default function Landing({ user, profile }) {
         {/* FOOTER */}
         <div className="footer">
           <button className="footer-cta" onClick={goAuth}>🚗 Записатись зараз</button>
+          {installPrompt && !installed && (
+            <button className="footer-install-btn" onClick={handleInstallClick}>📲 Встановити додаток</button>
+          )}
           <div>© 2026 OlhaDrive. Школа водіння в Києві.</div>
         </div>
 
