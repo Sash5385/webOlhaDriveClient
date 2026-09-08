@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
-import { getAdminServices } from '../firebase/db'
+import { getAdminServices, getUpcomingFreeSlots } from '../firebase/db'
+import { parseYMD, getDayName, formatDateYMD } from '../utils/date'
 import './Landing.css'
 
 // Та сама палітра, що й у виборі кольору послуги в адмінці (colorId) —
@@ -13,14 +14,28 @@ const SERVICE_COLORS = {
 }
 const colorOfService = (colorId) => SERVICE_COLORS[colorId] || SERVICE_COLORS.green
 
+// Підпис дня для тизера найближчих вільних місць — "Сьогодні"/"Завтра"/скорочена назва дня.
+function slotDayLabel(dateStr) {
+  const today = new Date()
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+  if (dateStr === formatDateYMD(today)) return 'Сьогодні'
+  if (dateStr === formatDateYMD(tomorrow)) return 'Завтра'
+  return getDayName(parseYMD(dateStr).getDay())
+}
+
 export default function Landing({ user, profile }) {
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
   const [termsOpen, setTermsOpen] = useState(false)
   const [services, setServices] = useState([])
+  const [upcomingSlots, setUpcomingSlots] = useState([])
 
   useEffect(() => {
     getAdminServices().then(setServices).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    getUpcomingFreeSlots(6).then(setUpcomingSlots).catch(() => {})
   }, [])
 
   // Ціна за годину для кожного напрямку — перша активна 1-годинна послуга цього типу.
@@ -31,6 +46,9 @@ export default function Landing({ user, profile }) {
 
   const goAuth = () => nav(user && profile ? '/cabinet' : '/auth')
   const goRegister = () => nav(user && profile ? '/cabinet' : '/auth')
+  const goBookSlot = (date, time) => nav(user && profile ? `/cabinet?date=${date}&time=${time}` : '/auth')
+
+  const nearestSlot = upcomingSlots[0]
 
   return (
     <div className="landing-page">
@@ -115,6 +133,43 @@ export default function Landing({ user, profile }) {
                 </div>
               )}
             </div>
+          </section>
+        )}
+
+        {/* NEAREST SLOTS */}
+        {nearestSlot && (
+          <section className="lsection">
+            <div className="lsection-title">Розклад</div>
+            <h2>Найближчі вільні місця</h2>
+
+            <div className="next-slot-card">
+              <div className="next-slot-lbl">Найближче вікно</div>
+              <div className="next-slot-big">{slotDayLabel(nearestSlot.date)}, {nearestSlot.time}</div>
+              <div className="next-slot-sub">
+                {upcomingSlots.length > 1
+                  ? `Ще ${upcomingSlots.length - 1} вільних варіантів цього тижня`
+                  : 'Встигни записатись, поки є місце'}
+              </div>
+              <button className="next-slot-cta" onClick={() => goBookSlot(nearestSlot.date, nearestSlot.time)}>📅 Забронювати</button>
+            </div>
+
+            {upcomingSlots.length > 1 && (
+              <>
+                <div className="slot-chips-lbl">Або обери інший час</div>
+                <div className="slot-chips">
+                  {upcomingSlots.map((s, i) => (
+                    <button
+                      key={`${s.date}_${s.time}`}
+                      className={`slot-chip${i === 0 ? ' active' : ''}`}
+                      onClick={() => goBookSlot(s.date, s.time)}
+                    >
+                      <div className="slot-chip-day">{slotDayLabel(s.date)}</div>
+                      <div className="slot-chip-time">{s.time}</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         )}
 
