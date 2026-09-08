@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
 import { getAdminServices, getUpcomingFreeSlots } from '../firebase/db'
-import { parseYMD, getDayName, formatDateYMD } from '../utils/date'
+import { parseYMD, getDayName, getMonthShort, formatDateYMD } from '../utils/date'
 import './Landing.css'
 
 // Та сама палітра, що й у виборі кольору послуги в адмінці (colorId) —
@@ -21,6 +21,12 @@ function slotDayLabel(dateStr) {
   if (dateStr === formatDateYMD(today)) return 'Сьогодні'
   if (dateStr === formatDateYMD(tomorrow)) return 'Завтра'
   return getDayName(parseYMD(dateStr).getDay())
+}
+
+// Коротка дата для тизера найближчих вільних місць — "13 вер".
+function slotDateShort(dateStr) {
+  const d = parseYMD(dateStr)
+  return `${d.getDate()} ${getMonthShort(d.getMonth())}`
 }
 
 export default function Landing({ user, profile }) {
@@ -144,7 +150,7 @@ export default function Landing({ user, profile }) {
 
             <div className="next-slot-card">
               <div className="next-slot-lbl">Найближче вікно</div>
-              <div className="next-slot-big">{slotDayLabel(nearestSlot.date)}, {nearestSlot.time}</div>
+              <div className="next-slot-big">{slotDayLabel(nearestSlot.date)}, {slotDateShort(nearestSlot.date)} · {nearestSlot.time}</div>
               <div className="next-slot-sub">
                 {upcomingSlots.length > 1
                   ? `Ще ${upcomingSlots.length - 1} вільних варіантів цього тижня`
@@ -164,6 +170,7 @@ export default function Landing({ user, profile }) {
                       onClick={() => goBookSlot(s.date, s.time)}
                     >
                       <div className="slot-chip-day">{slotDayLabel(s.date)}</div>
+                      <div className="slot-chip-date">{slotDateShort(s.date)}</div>
                       <div className="slot-chip-time">{s.time}</div>
                     </button>
                   ))}
