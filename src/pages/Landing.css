@@ -365,10 +365,8 @@
 }
 
 .slot-chips-lbl { font-size: 11px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 2px; }
-.slot-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.slot-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
 .slot-chip {
-  flex-shrink: 0;
-  min-width: 76px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -376,7 +374,7 @@
   background: rgba(0,0,0,0.52);
   border: 1px solid rgba(34,197,94,0.35);
   border-radius: 16px;
-  padding: 10px 14px;
+  padding: 10px 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.6);
   cursor: pointer;
 }
@@ -1009,4 +1007,47 @@
   height: 85%;
   background: radial-gradient(ellipse at top right, rgba(255,255,255,0.6), transparent 75%);
   pointer-events: none;
+}
+
+/* DESKTOP */
+@media (min-width: 1024px) {
+  .landing-page .container {
+    max-width: 1280px;
+    padding: 0 40px;
+  }
+
+  .hero,
+  .lsection-title,
+  .lsection h2,
+  .flow-card,
+  .instructor-card,
+  .contacts,
+  .map-card,
+  .terms-btn,
+  .terms-content,
+  .footer {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .services {
+    flex-direction: row;
+  }
+  .services .service-card {
+    flex: 1;
+  }
+
+  .features {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .reviews-scroll {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin: 0;
+    padding: 4px 0 12px;
+    justify-content: center;
+  }
+  .review-card { flex: 0 1 320px; }
 }
