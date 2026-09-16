@@ -56,7 +56,9 @@ function classifyDay(slotsObj) {
   // Use entries to derive time from key (slot1000 → 10:00) as fallback when time field missing.
   // Count only :00 slots (admin-created hourly slots); ignore :30 phantoms from client bookings.
   const slots = Object.entries(slotsObj).filter(([key, s]) => {
-    if (!s || s.adminBlocked) return false
+    // personal — час зайнятий особистою подією адміна, а не уроком; такий
+    // слот не має рахуватись і "підсвічувати" день учню як зайнятий.
+    if (!s || s.adminBlocked || s.personal) return false
     const m = key.match(/^slot(\d{2})(\d{2})$/)
     return m && parseInt(m[2], 10) === 0
   })
