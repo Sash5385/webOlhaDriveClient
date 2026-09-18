@@ -67,6 +67,10 @@ function ukDaySlot(isoDate, time) {
   } catch { return `${isoDate} о ${time}`; }
 }
 
+// Android-канал зі звуком, створюється клієнтом при реєстрації нативного push
+// (див. src/firebase/push.js). Тут лише referens для payload.
+const NATIVE_NOTIFICATION_CHANNEL_ID = "booking_alerts_v1";
+
 // ─── HELPER: send FCM to a user token ────────────────────────────
 async function sendPush(uid, title, body, urlPath, type = 'system') {
   await db.ref(`notifications/${uid}`).push({
@@ -78,32 +82,68 @@ async function sendPush(uid, title, body, urlPath, type = 'system') {
     read: false,
   }).catch(e => console.error(`notifications write error uid=${uid}`, e.message));
 
-  const snap = await db.ref(`users/${uid}/fcmTokens/web/token`).get();
-  const token = snap.val();
-  if (!token) {
+  const [webSnap, nativeSnap] = await Promise.all([
+    db.ref(`users/${uid}/fcmTokens/web/token`).get(),
+    db.ref(`users/${uid}/fcmTokens/native/token`).get(),
+  ]);
+  const token = webSnap.val();
+  const nativeToken = nativeSnap.val();
+  if (!token && !nativeToken) {
     console.warn(`sendPush: no token for uid=${uid}`);
     return;
   }
   const link = (urlPath || "/").startsWith("http") ? (urlPath || "/") : `https://olhadrive.kiev.ua${urlPath || "/"}`;
-  try {
-    // Data-only: якщо додати ще й "notification" — браузер покаже сповіщення
-    // сам ДОДАТКОВО до showNotification() у SW, звідси дублікат.
-    await messaging.send({
-      token,
-      data: { title, body, url: link },
-      webpush: {
-        fcmOptions: { link },
-      },
-    });
-    console.log(`sendPush OK uid=${uid} title="${title}"`);
-  } catch (err) {
-    console.error(`sendPush ERROR uid=${uid} code=${err.code} msg=${err.message}`);
-    if (
-      err.code === "messaging/registration-token-not-registered" ||
-      err.code === "messaging/invalid-registration-token" ||
-      err.code === "messaging/invalid-argument"
-    ) {
-      await db.ref(`users/${uid}/fcmTokens/web`).remove();
+
+  if (token) {
+    try {
+      // Data-only: якщо додати ще й "notification" — браузер покаже сповіщення
+      // сам ДОДАТКОВО до showNotification() у SW, звідси дублікат.
+      await messaging.send({
+        token,
+        data: { title, body, url: link },
+        webpush: {
+          fcmOptions: { link },
+        },
+      });
+      console.log(`sendPush web OK uid=${uid} title="${title}"`);
+    } catch (err) {
+      console.error(`sendPush web ERROR uid=${uid} code=${err.code} msg=${err.message}`);
+      if (
+        err.code === "messaging/registration-token-not-registered" ||
+        err.code === "messaging/invalid-registration-token" ||
+        err.code === "messaging/invalid-argument"
+      ) {
+        await db.ref(`users/${uid}/fcmTokens/web`).remove();
+      }
+    }
+  }
+
+  if (nativeToken) {
+    try {
+      // Тут НЕ data-only: top-level notification+android.notification потрібен,
+      // щоб система показала пуш і зіграла звук з каналу навіть коли застосунок
+      // закритий/екран вимкнений (клієнт у такому разі взагалі не запускається).
+      await messaging.send({
+        token: nativeToken,
+        notification: { title, body },
+        data: { title, body, url: link },
+        android: {
+          notification: {
+            channelId: NATIVE_NOTIFICATION_CHANNEL_ID,
+            sound: "notification_sound",
+          },
+        },
+      });
+      console.log(`sendPush native OK uid=${uid} title="${title}"`);
+    } catch (err) {
+      console.error(`sendPush native ERROR uid=${uid} code=${err.code} msg=${err.message}`);
+      if (
+        err.code === "messaging/registration-token-not-registered" ||
+        err.code === "messaging/invalid-registration-token" ||
+        err.code === "messaging/invalid-argument"
+      ) {
+        await db.ref(`users/${uid}/fcmTokens/native`).remove();
+      }
     }
   }
 }
@@ -118,31 +158,62 @@ async function sendAdminPush(title, body) {
     const snap = await db.ref(p).get();
     if (snap.val()) { token = snap.val(); tokenPath = p; break; }
   }
-  console.log("Admin token path:", tokenPath, "token exists:", !!token);
-  if (!token) {
+  const nativeSnap = await db.ref("admin/fcmTokens/native/token").get();
+  const nativeToken = nativeSnap.val();
+  console.log("Admin token path:", tokenPath, "web token exists:", !!token, "native token exists:", !!nativeToken);
+  if (!token && !nativeToken) {
     console.log("No admin FCM token found");
     await writePushLog({ type: "admin_alert", title, body, status: "no_token" });
     return;
   }
-  try {
-    // Data-only — показ виключно через onBackgroundMessage/onMessage (без дублю).
-    await messaging.send({
-      token,
-      data: { title, body, url: "/" },
-      webpush: {
-        fcmOptions: { link: "/" },
-      },
-    });
-    console.log("Admin push sent OK");
-    await writePushLog({ type: "admin_alert", title, body, status: "sent" });
-  } catch (err) {
-    console.error("Admin push error:", err.code, err.message);
-    await writePushLog({ type: "admin_alert", title, body, status: "error", error: err.code || err.message });
-    if (
-      err.code === "messaging/registration-token-not-registered" ||
-      err.code === "messaging/invalid-registration-token"
-    ) {
-      await db.ref(tokenPath).remove();
+  if (token) {
+    try {
+      // Data-only — показ виключно через onBackgroundMessage/onMessage (без дублю).
+      await messaging.send({
+        token,
+        data: { title, body, url: "/" },
+        webpush: {
+          fcmOptions: { link: "/" },
+        },
+      });
+      console.log("Admin push (web) sent OK");
+      await writePushLog({ type: "admin_alert", title, body, status: "sent" });
+    } catch (err) {
+      console.error("Admin push (web) error:", err.code, err.message);
+      await writePushLog({ type: "admin_alert", title, body, status: "error", error: err.code || err.message });
+      if (
+        err.code === "messaging/registration-token-not-registered" ||
+        err.code === "messaging/invalid-registration-token"
+      ) {
+        await db.ref(tokenPath).remove();
+      }
+    }
+  }
+  if (nativeToken) {
+    try {
+      // Тут НЕ data-only: top-level notification+android.notification потрібен,
+      // щоб система показала пуш і зіграла звук з каналу навіть коли застосунок
+      // закритий/екран вимкнений.
+      await messaging.send({
+        token: nativeToken,
+        notification: { title, body },
+        data: { title, body, url: "/" },
+        android: {
+          notification: {
+            channelId: NATIVE_NOTIFICATION_CHANNEL_ID,
+            sound: "notification_sound",
+          },
+        },
+      });
+      console.log("Admin push (native) sent OK");
+    } catch (err) {
+      console.error("Admin push (native) error:", err.code, err.message);
+      if (
+        err.code === "messaging/registration-token-not-registered" ||
+        err.code === "messaging/invalid-registration-token"
+      ) {
+        await db.ref("admin/fcmTokens/native/token").remove();
+      }
     }
   }
 }
