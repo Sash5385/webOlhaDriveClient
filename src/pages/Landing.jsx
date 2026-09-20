@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme'
-import { getAdminServices, getUpcomingFreeSlots } from '../firebase/db'
+import { getAdminServices, getUpcomingFreeSlots, subscribeApprovedReviews } from '../firebase/db'
 import { parseYMD, getDayName, getMonthShort, formatDateYMD } from '../utils/date'
 import './Landing.css'
 
@@ -29,9 +29,31 @@ function slotDateShort(dateStr) {
   return `${d.getDate()} ${getMonthShort(d.getMonth())}`
 }
 
+const AVATAR_COLORS = [
+  'linear-gradient(165deg,#ff7a5c,#ff5a3c)',
+  'linear-gradient(165deg,#fb923c,#ea580c)',
+  'linear-gradient(165deg,#5b9bff,#2563eb)',
+  'linear-gradient(165deg,#c084fc,#7c3aed)',
+  'linear-gradient(165deg,#2dd4bf,#0d9488)',
+]
+
+function initials(name) {
+  return (name || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
+function starsStr(rating) {
+  return '★'.repeat(rating) + '☆'.repeat(5 - rating)
+}
+
+function reviewDateShort(ts) {
+  const d = new Date(ts)
+  return `${d.getDate()} ${getMonthShort(d.getMonth())} ${d.getFullYear()}`
+}
+
 export default function Landing({ user, profile }) {
   const { theme, toggle } = useTheme()
   const nav = useNavigate()
+  const [appReviews, setAppReviews] = useState([])
   const [termsOpen, setTermsOpen] = useState(false)
   const [services, setServices] = useState([])
   const [upcomingSlots, setUpcomingSlots] = useState([])
@@ -74,6 +96,8 @@ export default function Landing({ user, profile }) {
   useEffect(() => {
     getUpcomingFreeSlots(12).then(setUpcomingSlots).catch(() => {})
   }, [])
+
+  useEffect(() => subscribeApprovedReviews(setAppReviews), [])
 
   // Ціна за годину для кожного напрямку — перша активна 1-годинна послуга цього типу.
   const schoolService = services.find(s => s.type === 'school' && Number(s.duration) === 60)
@@ -327,6 +351,30 @@ export default function Landing({ user, profile }) {
             </div>
           </div>
         </section>
+
+        {/* REVIEWS */}
+        {appReviews.length > 0 && (
+          <>
+            <section className="lsection">
+              <div className="lsection-title">Відгуки</div>
+              <h2>Що кажуть учні</h2>
+            </section>
+            <div className="reviews-scroll">
+              {appReviews.map((r, i) => (
+                <div className="review-card" key={r.id}>
+                  <div className="review-stars" style={{color: r.rating >= 4 ? '#f7c948' : '#ff5a3c'}}>
+                    {starsStr(r.rating)}
+                  </div>
+                  {r.text && <div className="review-text">"{r.text}"</div>}
+                  <div className="review-author">
+                    <div className="review-avatar" style={{background: AVATAR_COLORS[i % AVATAR_COLORS.length]}}>{initials(r.studentName)}</div>
+                    <div><div className="review-name">{r.studentName}</div><div className="review-date">{reviewDateShort(r.createdAt)}</div></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* CONTACTS */}
         <section className="lsection">
