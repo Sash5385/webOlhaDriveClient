@@ -54,6 +54,9 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
   const effectiveType = (isPrivateStudent || schoolLimitReached) ? 'private' : 'school'
   const isVipStudent = profile?.isVip === true
   const discountAmt = profile?.discount || 0
+  // Індивідуальна фікс. ціна учня (₴/год), виставлена адміном у картці учня —
+  // діє замість тарифу послуги, знижка тоді не застосовується.
+  const customPriceAmt = profile?.customPrice > 0 ? Number(profile.customPrice) : null
   // Знижка діє на годину — при 2-годинному записі подвоюється тощо.
   const applyDiscount = (price, hours = 1) => discountAmt > 0 ? Math.max(0, price - discountAmt * hours) : price
   const [services, setServices] = useState([])
@@ -316,7 +319,11 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
         }
       }
       // Фіксована ціна слота повністю замінює тарифну ціну (без надбавки й знижки).
-      const totalPrice = fixedPrice != null ? fixedPrice : applyDiscount(slotPrice(baseService, dateStr, durationHours, surcharge), durationHours)
+      const totalPrice = fixedPrice != null
+        ? fixedPrice
+        : customPriceAmt != null
+          ? Math.round(customPriceAmt * durationHours) + surcharge
+          : applyDiscount(slotPrice(baseService, dateStr, durationHours, surcharge), durationHours)
       // Атомарно займаємо слот(и) ДО створення запису (анти-подвійне-бронювання).
       // Якщо слот зарезервований саме для мене (черга) — пропускаємо claim.
       const isOfferedToMe = !!currentSlot?.offeredTo?.[user?.uid]
@@ -354,7 +361,7 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
           price: totalPrice || undefined,
           manualPrice: fixedPrice != null ? fixedPrice : undefined,
           surcharge: fixedPrice != null ? undefined : (surcharge || undefined),
-          discountAmt: fixedPrice != null ? undefined : (discountAmt || undefined),
+          discountAmt: (fixedPrice != null || customPriceAmt != null) ? undefined : (discountAmt || undefined),
           durationHours,
           studentName: profile.name,
           phone: profile.phone || user.phoneNumber,
@@ -790,7 +797,11 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
         }
         const fixedPrice = clickedSlot?.fixedPrice || null
         const baseP = Math.round(effectivePrice(baseService, formatDateYMD(selectedDate)) * durationHours)
-        const totalPrice = fixedPrice != null ? fixedPrice : applyDiscount(baseP + surcharge, durationHours)
+        const totalPrice = fixedPrice != null
+          ? fixedPrice
+          : customPriceAmt != null
+            ? Math.round(customPriceAmt * durationHours) + surcharge
+            : applyDiscount(baseP + surcharge, durationHours)
         const dateLabel = formatDateYMD(selectedDate).slice(-5).split('-').reverse().join('.')
         const endMin = startMin + durationHours * 60
         const endLabel = `${String(Math.floor(endMin/60)).padStart(2,'0')}:${String(endMin%60).padStart(2,'0')}`
@@ -814,6 +825,15 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
                 position:'relative', overflow:'hidden',
               }}>
                 💰 Фіксована ціна: <strong>{totalPrice}₴</strong>
+              </div>
+            ) : customPriceAmt != null ? (
+              <div className="fixed-price-banner" style={{
+                marginTop:12, padding:'12px 14px', borderRadius:12,
+                background:'rgba(74,222,128,0.08)', border:'1.5px solid rgba(74,222,128,0.35)',
+                fontSize:13, color:'#4ade80', fontWeight:700, textAlign:'center',
+                position:'relative', overflow:'hidden',
+              }}>
+                💰 Ваша ціна: <strong>{totalPrice}₴</strong>
               </div>
             ) : surcharge > 0 ? (
               <div style={{
@@ -903,9 +923,11 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
                   <span className="val" style={{color:'var(--gold)'}}>
                     {successData.fixedPrice != null
                       ? successData.fixedPrice
-                      : applyDiscount(Math.round(effectivePrice(successData.service, successData.date) * successData.durationHours) + (successData.surcharge || 0), successData.durationHours)} ₴
-                    {successData.fixedPrice == null && successData.surcharge > 0 && <span style={{fontSize:10, color:'var(--gold)', opacity:0.7}}> (+{successData.surcharge}₴)</span>}
-                    {successData.fixedPrice == null && discountAmt > 0 && <span style={{fontSize:10, color:'#4ade80', marginLeft:4}}>−{discountAmt * successData.durationHours}₴</span>}
+                      : customPriceAmt != null
+                        ? Math.round(customPriceAmt * successData.durationHours) + (successData.surcharge || 0)
+                        : applyDiscount(Math.round(effectivePrice(successData.service, successData.date) * successData.durationHours) + (successData.surcharge || 0), successData.durationHours)} ₴
+                    {successData.fixedPrice == null && customPriceAmt == null && successData.surcharge > 0 && <span style={{fontSize:10, color:'var(--gold)', opacity:0.7}}> (+{successData.surcharge}₴)</span>}
+                    {successData.fixedPrice == null && customPriceAmt == null && discountAmt > 0 && <span style={{fontSize:10, color:'#4ade80', marginLeft:4}}>−{discountAmt * successData.durationHours}₴</span>}
                   </span>
                 </div>
               )}
@@ -940,7 +962,9 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
               </div>
               {dialogSlot.surcharge > 0 && (() => {
                 const dialogDurHours = (dialogSlot.slotDurMin || dialogSlot.durMin || 60) / 60
-                const dialogBaseP = Math.round(effectivePrice(baseService, selectedDate ? formatDateYMD(selectedDate) : '') * dialogDurHours)
+                const dialogBaseP = customPriceAmt != null
+                  ? Math.round(customPriceAmt * dialogDurHours)
+                  : Math.round(effectivePrice(baseService, selectedDate ? formatDateYMD(selectedDate) : '') * dialogDurHours)
                 return (
                   <>
                     <div className="dialog-info-row">
@@ -951,7 +975,7 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
                       <span className="lbl" style={{color:'var(--gold)'}}>⚡ Надбавка</span>
                       <span className="val" style={{color:'var(--gold)'}}>+{dialogSlot.surcharge}₴</span>
                     </div>
-                    {discountAmt > 0 && (
+                    {customPriceAmt == null && discountAmt > 0 && (
                       <div className="dialog-info-row">
                         <span className="lbl" style={{color:'#4ade80'}}>Знижка</span>
                         <span className="val" style={{color:'#4ade80'}}>−{discountAmt * dialogDurHours}₴</span>
@@ -959,7 +983,7 @@ export default function BookTab({ user, profile, bookingsData, notifParams }) {
                     )}
                     <div className="dialog-info-row" style={{borderTop:'1px solid rgba(255,255,255,0.07)', marginTop:4, paddingTop:4}}>
                       <span className="lbl" style={{fontWeight:700}}>Разом</span>
-                      <span className="val" style={{fontWeight:800}}>{applyDiscount(dialogBaseP + dialogSlot.surcharge, dialogDurHours)}₴</span>
+                      <span className="val" style={{fontWeight:800}}>{customPriceAmt != null ? dialogBaseP + dialogSlot.surcharge : applyDiscount(dialogBaseP + dialogSlot.surcharge, dialogDurHours)}₴</span>
                     </div>
                   </>
                 )
