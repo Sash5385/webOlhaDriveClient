@@ -356,7 +356,9 @@ export async function claimSlot(date, startTime) {
     if (current && current.available === false) {
       return undefined // abort transaction
     }
-    return { ...(current || {}), available: false, time: startTime, bookingStart: true }
+    // Документа не було (current === null) — він існує лише під цей запис: phantom,
+    // щоб скасування видалило його, а не лишило окремим вільним слотом.
+    return { ...(current || {}), ...(current ? {} : { phantom: true }), available: false, time: startTime, bookingStart: true }
   })
   return result.committed
 }
