@@ -330,7 +330,7 @@ export default function Landing({ user, profile }) {
               <div className="flow-num">4</div>
               <div className="flow-body">
                 <div className="flow-title">Авто-перехід на приватні</div>
-                <div className="flow-desc">Після 40 уроків автошколи відкриваються приватні уроки — для шліфування навичок</div>
+                <div className="flow-desc">Після 40 уроків автошколи перейдемо на приватні уроки — для шліфування навичок</div>
               </div>
             </div>
 
