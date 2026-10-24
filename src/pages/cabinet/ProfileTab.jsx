@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTheme, isFogOn, applyFog, FOG_KEY, UI_SCALES, readScale, setUiScale } from "../../hooks/useTheme";
+import { useTheme, UI_SCALES, readScale, setUiScale } from "../../hooks/useTheme";
 import { useToast } from "../../hooks/useToast";
 import { getInitials, formatPhone } from "../../utils/format";
 import { APP_VERSION } from "../../version.js";
@@ -21,14 +21,7 @@ const EXPERIENCE_LABELS = {
 export default function ProfileTab({ user, profile, bookingsData, onProfileUpdate }) {
   const { theme, setTheme } = useTheme();
   const { showToast, ToastEl } = useToast();
-  const [fog, setFog] = useState(isFogOn);
   const [uiScale, setUiScaleLocal] = useState(readScale);
-  const toggleFog = () => {
-    const next = !fog;
-    setFog(next);
-    applyFog(next);
-    try { localStorage.setItem(FOG_KEY, next ? 'on' : 'off'); } catch { /* приватний режим */ }
-  };
 
   const forceUpdate = async () => {
     try {
@@ -142,18 +135,6 @@ export default function ProfileTab({ user, profile, bookingsData, onProfileUpdat
             <div className="val">Київ, Верховинна 44</div>
           </div>
         </a>
-      </div>
-
-      <div className="profile-section">
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-          <div>
-            <div style={{fontSize:14,fontWeight:700}}>Стиль «Туман»</div>
-            <div style={{fontSize:12,color:"var(--dim)",marginTop:2}}>Скляний фон і картки</div>
-          </div>
-          <div className={`edit-switch${fog ? " on" : ""}`} onClick={toggleFog} role="switch" aria-checked={fog} aria-label="Стиль «Туман»">
-            <div className="edit-switch-knob"/>
-          </div>
-        </div>
       </div>
 
       <div onClick={forceUpdate} style={{textAlign:"center",padding:"12px 0 4px",color:"#5a5c62",fontSize:13,fontWeight:600,letterSpacing:0.5,cursor:"pointer"}}>
