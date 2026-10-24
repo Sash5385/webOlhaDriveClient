@@ -235,7 +235,7 @@ export default function Auth({ user, profile, onProfileSaved }) {
   const handleSubmitSurvey = async () => {
     if (!name.trim() || !surname.trim()) { setSurveyNameError('Введіть ваше ПІБ'); return }
     setSurveyNameError('')
-    if (!user?.phoneNumber && !surveyPhone.trim()) { showToast('Введи номер телефону'); return }
+    if (!user?.phoneNumber && surveyPhone.trim().length !== 9) { showToast('Введи коректний номер телефону'); return }
     if (!termsAgreed) { showToast('Прийми умови користування'); return }
 
     setSavingProfile(true)
@@ -246,7 +246,7 @@ export default function Auth({ user, profile, onProfileSaved }) {
       const inviteToken = sessionStorage.getItem('id4_invite_token') || ''
       const data = {
         name: `${name.trim()} ${surname.trim()}`,
-        phone: user.phoneNumber || (surveyPhone.trim() ? `+380${surveyPhone.trim()}` : null) || phone || email,
+        phone: user.phoneNumber || `+380${surveyPhone.trim()}`,
         // Відомий безкоштовно для Google/Email-входу — зберігаємо, щоб
         // Cloud Function onNewStudentRegistered могла зіставити з заздалегідь
         // створеною адміном карткою учня ще й по email, не лише по телефону.

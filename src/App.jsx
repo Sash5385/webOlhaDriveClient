@@ -7,6 +7,7 @@ import { auth } from './firebase/config'
 import { getUserProfile, createBooking, markSlotsUnavailable, claimSlot, unclaimSlot, markFirstLoginIfNew } from './firebase/db'
 import { requestNotificationPermission, onForegroundMessage, getFirebaseSwReg } from './firebase/push'
 import { useAppUpdate } from './hooks/useAppUpdate'
+import { useLicense, isLicenseBlocked } from './hooks/useLicense'
 import { useToast } from './hooks/useToast'
 import { consumeBackHandler } from './hooks/useBackButton'
 import { APP_VERSION } from './version.js'
@@ -98,6 +99,7 @@ export default function App() {
   const { needRefresh, updateServiceWorker, isUpdating } = useAppUpdate()
   const { showToast, ToastEl } = useToast()
   const navigate = useNavigate()
+  const license = useLicense()
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -138,7 +140,9 @@ export default function App() {
             requireInteraction: true,
             data: { url },
           })
-        }).catch(() => {})
+        }).catch(() => {
+          new Notification(title, { body, icon: '/icon-192.png' })
+        })
       } else {
         new Notification(title, { body, icon: '/icon-192.png' })
       }
@@ -210,6 +214,22 @@ export default function App() {
         paddingTop:'env(safe-area-inset-top, 0px)', paddingBottom:'env(safe-area-inset-bottom, 0px)'
       }}>
         <div className="spinner" />
+      </div>
+    )
+  }
+
+  if (isLicenseBlocked(license)) {
+    return (
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'center',
+        minHeight:'100vh', background:'var(--bg)', padding:20, textAlign:'center',
+        paddingTop:'calc(20px + env(safe-area-inset-top, 0px))', paddingBottom:'calc(20px + env(safe-area-inset-bottom, 0px))'
+      }}>
+        <div>
+          <div style={{ fontSize:40, marginBottom:12 }}>🔒</div>
+          <p>Сервіс тимчасово недоступний.</p>
+          <p>Зверніться до інструктора.</p>
+        </div>
       </div>
     )
   }

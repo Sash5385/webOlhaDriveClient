@@ -27,7 +27,8 @@ export async function getUserProfile(uid) {
   // без завершеної анкети — це НЕ реєстрація, інакше повторний вхід (особливо
   // Google в один клік) пропускає анкету з іменем/телефоном.
   if (!data.profile) return null
-  return { ...data.profile, isVip: data.isVip || false, discount: data.discount || 0, customPrice: data.customPrice ?? null, hoursOffset: data.hoursOffset || 0 }
+  return { ...data.profile, isVip: data.isVip || false, discount: data.discount || 0, customPrice: data.customPrice ?? null, hoursOffset: data.hoursOffset || 0,
+    maneuverCounts: data.maneuverCounts || {}, maneuverSuccessCounts: data.maneuverSuccessCounts || {}, badges: data.badges || {} }
 }
 
 export async function saveUserProfile(uid, profile) {
@@ -58,18 +59,22 @@ export async function getSlotsForDate(date) {
 
 function classifyDay(slotsObj) {
   if (!slotsObj) return null
-  // Use entries to derive time from key (slot1000 → 10:00) as fallback when time field missing.
-  // Count only :00 slots (admin-created hourly slots); ignore :30 phantoms from client bookings.
+  // Рахуємо всі реальні слоти — і :00 (годинні від адміна), і :30
+  // (напр. слот, що звільнився після скасування запису на пів години).
+  // Раніше :30 ігнорувались повністю — і день із вільними :30-слотами
+  // не підсвічувався ні зеленим, ні оранжевим.
   const slots = Object.entries(slotsObj).filter(([key, s]) => {
     // personal — час зайнятий особистою подією адміна, а не уроком; такий
     // слот не має рахуватись і "підсвічувати" день учню як зайнятий.
     if (!s || s.adminBlocked || s.personal) return false
-    const m = key.match(/^slot(\d{2})(\d{2})$/)
-    return m && parseInt(m[2], 10) === 0
+    return /^slot\d{4}$/.test(key)
   })
   if (slots.length === 0) return null
   const free  = slots.filter(([, s]) => s.available !== false).length
   const taken = slots.filter(([, s]) => s.available === false).length
+  // Колір за станом зайнятості: якщо жодного зайнятого слота — день повністю
+  // вільний (зелений), навіть якщо це лише один слот. Жовтий — коли частина
+  // дня вже зайнята/заброньована. Червоний — коли вільних слотів не лишилось.
   if (taken === 0) return 'free'
   if (free  === 0) return 'full'
   return 'partial'

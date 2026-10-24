@@ -42,6 +42,22 @@ export default function Cabinet({ user, profile, onProfileUpdate }) {
   // Визначаємо активну вкладку з URL
   const path = loc.pathname.replace('/cabinet', '').replace('/', '')
   const activeTab = path || 'book'
+  // Примусове оновлення — скидає service worker і кеш перед перезавантаженням,
+  // щоб гарантовано підтягнути нову версію (кнопка "Оновити" в топбарі).
+  const forceUpdate = async () => {
+    try {
+      const regs = await navigator.serviceWorker?.getRegistrations?.() || []
+      await Promise.all(regs.map(r => r.unregister()))
+      if (window.caches) {
+        const keys = await caches.keys()
+        await Promise.all(keys.map(k => caches.delete(k)))
+      }
+    } finally {
+      window.location.reload()
+    }
+  }
+
+
   const [displayedTab, mosaicPhase] = useMosaicSwitch(activeTab, 0.5)
 
   // Невідомий шлях під /cabinet/* (раніше — <Route path="*" element={<Navigate .../>}/>)
@@ -241,7 +257,7 @@ export default function Cabinet({ user, profile, onProfileUpdate }) {
         </div>
         <div className="cab-title">{TITLES[activeTab] || 'Кабінет'}</div>
         <div className="cab-actions">
-          <button className="cab-icon-btn" onClick={() => window.location.reload()} aria-label="Оновити">
+          <button className="cab-icon-btn" onClick={forceUpdate} aria-label="Оновити">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 4 23 10 17 10"/>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
